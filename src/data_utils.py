@@ -34,31 +34,46 @@ def load_mat_file(filepath: str) -> Dict:
 
 def load_density_example(filepath: str) -> np.ndarray:
     """Load example density field (X1.mat, X2.mat, X3.mat)."""
+    from scipy import sparse
     data = load_mat_file(filepath)
 
     for key in ['X', 'X1', 'X2', 'X3']:
         if key in data:
             X = data[key]
+            if sparse.issparse(X):
+                X = X.toarray()
             if X.ndim == 2:
                 return X
 
     for key, value in data.items():
         if isinstance(value, np.ndarray) and value.ndim == 2:
             return value
+        elif sparse.issparse(value) and hasattr(value, 'toarray'):
+            arr = value.toarray()
+            if arr.ndim == 2:
+                return arr
 
     raise ValueError(f"No 2D density field found in {filepath}")
 
 
 def load_toy_measurements(filepath: str) -> np.ndarray:
     """Load toy problem measurements (Y.mat)."""
+    from scipy import sparse
     data = load_mat_file(filepath)
 
     if 'Y' in data:
-        return data['Y']
+        Y = data['Y']
+        if sparse.issparse(Y):
+            Y = Y.toarray()
+        return Y
 
     for value in data.values():
         if isinstance(value, np.ndarray) and value.ndim == 2:
             return value
+        elif sparse.issparse(value) and hasattr(value, 'toarray'):
+            arr = value.toarray()
+            if arr.ndim == 2:
+                return arr
 
     raise ValueError(f"No measurement matrix found in {filepath}")
 
@@ -109,6 +124,11 @@ def load_3d_data(data_dir: str) -> Tuple[np.ndarray, np.ndarray]:
 def measurements_to_vector(Y: np.ndarray,
                           source_order: Optional[np.ndarray] = None) -> np.ndarray:
     """Convert measurement matrix Y to vector y."""
+    from scipy import sparse
+
+    if sparse.issparse(Y):
+        Y = Y.toarray()
+
     if source_order is None:
         return Y.flatten(order='C')
     else:
