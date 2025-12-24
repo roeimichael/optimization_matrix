@@ -88,52 +88,40 @@ def build_derivative_matrix_2d(M: int, N: int,
         # For column-stacked representation: x = [X11, X21, X31, ..., X12, X22, ...]
         # X_{i+1,j} is at position (i+1) + j*M  (0-indexed: i + j*M)
         # X_{i,j} is at position i + j*M
-        
-        diagonals = []
-        offsets = []
-        
-        for j in range(N):  # For each column
-            for i in range(M - 1):  # For each row except last
-                row_idx = i + j * M
-                # D[row_idx, row_idx] = -1
-                # D[row_idx, row_idx + 1] = 1
-                diagonals.append(np.ones(1))
-                offsets.append((row_idx, row_idx))
-                diagonals.append(np.ones(1))
-                offsets.append((row_idx, row_idx + 1))
-        
-        # More efficient: use diags
+
+        # Build diagonals efficiently - zero out boundary rows from the start
         main_diag = -np.ones(n)
         upper_diag = np.zeros(n - 1)
-        
-        # Set upper diagonal to 1 where appropriate
+
+        # Set diagonals for interior points
         for j in range(N):
             for i in range(M - 1):
                 idx = i + j * M
                 upper_diag[idx] = 1.0
-        
-        D = sparse.diags([main_diag, upper_diag], [0, 1], shape=(n, n), format='csr')
-        
-        # Zero out rows corresponding to i=M-1 (last row of each column)
+
+        # Zero out boundary rows (i=M-1) in main diagonal
         for j in range(N):
             row_idx = (M - 1) + j * M
-            D[row_idx, :] = 0
+            main_diag[row_idx] = 0.0
+
+        D = sparse.diags([main_diag, upper_diag], [0, 1], shape=(n, n), format='csr')
     
     elif direction == 'x':
         # Horizontal derivative: differentiate along columns
         # X_{i,j+1} is at position i + (j+1)*M
         # X_{i,j} is at position i + j*M
-        
+
+        # Build diagonals efficiently - zero out boundary rows from the start
         main_diag = -np.ones(n)
         upper_diag = np.zeros(n - M)
         upper_diag[:] = 1.0
-        
-        D = sparse.diags([main_diag, upper_diag], [0, M], shape=(n, n), format='csr')
-        
-        # Zero out rows corresponding to j=N-1 (last column)
+
+        # Zero out boundary rows (j=N-1) in main diagonal
         for i in range(M):
             row_idx = i + (N - 1) * M
-            D[row_idx, :] = 0
+            main_diag[row_idx] = 0.0
+
+        D = sparse.diags([main_diag, upper_diag], [0, M], shape=(n, n), format='csr')
     
     else:
         raise ValueError(f"Invalid direction: {direction}. Must be 'x' or 'y'")
@@ -165,49 +153,49 @@ def build_derivative_matrix_3d(n: int, direction: str) -> sparse.csr_matrix:
         # Indices: (i + (j+1)*n + k*n²) - (i + j*n + k*n²) = n apart
         main_diag = -np.ones(N)
         upper_diag = np.ones(N - n)
-        
-        D = sparse.diags([main_diag, upper_diag], [0, n], shape=(N, N), format='csr')
-        
-        # Zero out boundary (j = n-1)
+
+        # Zero out boundary (j = n-1) in main diagonal
         for k in range(n):
             for i in range(n):
                 row_idx = i + (n - 1) * n + k * n * n
-                D[row_idx, :] = 0
+                main_diag[row_idx] = 0.0
+
+        D = sparse.diags([main_diag, upper_diag], [0, n], shape=(N, N), format='csr')
     
     elif direction == 'y':
         # ∂_y: X_{i+1,j,k} - X_{i,j,k}
         # Indices: (i+1 + j*n + k*n²) - (i + j*n + k*n²) = 1 apart
         main_diag = -np.ones(N)
         upper_diag = np.zeros(N - 1)
-        
+
         # Set upper diagonal, but skip boundaries
         for k in range(n):
             for j in range(n):
                 for i in range(n - 1):
                     idx = i + j * n + k * n * n
                     upper_diag[idx] = 1.0
-        
-        D = sparse.diags([main_diag, upper_diag], [0, 1], shape=(N, N), format='csr')
-        
-        # Zero out boundary rows (i = n-1)
+
+        # Zero out boundary rows (i = n-1) in main diagonal
         for k in range(n):
             for j in range(n):
                 row_idx = (n - 1) + j * n + k * n * n
-                D[row_idx, :] = 0
+                main_diag[row_idx] = 0.0
+
+        D = sparse.diags([main_diag, upper_diag], [0, 1], shape=(N, N), format='csr')
     
     elif direction == 'z':
         # ∂_z: X_{i,j,k+1} - X_{i,j,k}
         # Indices: (i + j*n + (k+1)*n²) - (i + j*n + k*n²) = n² apart
         main_diag = -np.ones(N)
         upper_diag = np.ones(N - n * n)
-        
-        D = sparse.diags([main_diag, upper_diag], [0, n * n], shape=(N, N), format='csr')
-        
-        # Zero out boundary (k = n-1)
+
+        # Zero out boundary (k = n-1) in main diagonal
         for j in range(n):
             for i in range(n):
                 row_idx = i + j * n + (n - 1) * n * n
-                D[row_idx, :] = 0
+                main_diag[row_idx] = 0.0
+
+        D = sparse.diags([main_diag, upper_diag], [0, n * n], shape=(N, N), format='csr')
     
     else:
         raise ValueError(f"Invalid direction: {direction}. Must be 'x', 'y', or 'z'")
