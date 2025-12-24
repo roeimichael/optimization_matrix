@@ -12,10 +12,10 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
 
-from matrix_construction import build_derivative_matrix_2d, compute_gradient_magnitude
-from solvers import cgls
-from data_utils import load_density_example, grid_to_vector, vector_to_grid
-from visualization import visualize_2d_field, visualize_derivatives
+from src.matrix_construction import build_derivative_matrix_2d, compute_gradient_magnitude
+from src.solvers import cgls
+from src.data_utils import load_density_example, grid_to_vector, vector_to_grid
+from src.visualization import visualize_2d_field, visualize_gradients
 
 
 def example_derivatives():
@@ -49,16 +49,12 @@ def example_derivatives():
     
     # Compute gradient magnitude
     G = compute_gradient_magnitude(Dx_x, Dy_x, M, N)
-    
-    # Convert back to 2D for visualization
-    Dx_X = vector_to_grid(Dx_x, (M, N))
-    Dy_X = vector_to_grid(Dy_x, (M, N))
-    
+
     print(f"\nGradient magnitude range: [{G.min():.4f}, {G.max():.4f}]")
-    
+
     # Visualize
     print("\nGenerating visualization...")
-    visualize_derivatives(X, Dx_X, Dy_X, G)
+    visualize_gradients(X, Dx_x, Dy_x, G)
 
 
 def example_toy_problem():
@@ -85,7 +81,7 @@ def example_toy_problem():
     print(f"Number of measurements: {num_measurements}")
     
     # Build regularization matrix
-    from matrix_construction import build_combined_derivative_matrix
+    from src.matrix_construction import build_combined_derivative_matrix
     L = build_combined_derivative_matrix(M, N, dimensions=2)
     
     print(f"L shape: {L.shape}")
@@ -128,7 +124,7 @@ def example_3d_reconstruction():
     y = A @ x_true + 0.01 * np.random.randn(num_measurements)
     
     # Build 3D derivative operator
-    from matrix_construction import build_combined_derivative_matrix
+    from src.matrix_construction import build_combined_derivative_matrix
     L = build_combined_derivative_matrix(n, n, dimensions=3)
     
     print(f"L shape: {L.shape}")
