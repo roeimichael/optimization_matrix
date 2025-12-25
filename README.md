@@ -1,22 +1,18 @@
 # X-ray Tomography Reconstruction
 
-X-ray tomography reconstruction using Tikhonov and Total Variation regularization.
+Computational reconstruction of 3D objects from X-ray measurements using Tikhonov and Total Variation regularization.
 
 ## Structure
 
 ```
-├── src/                    # Source code
-│   ├── matrix_construction.py
-│   ├── solvers.py
-│   ├── data_utils.py
-│   └── visualization.py
-├── data/                   # Data files
-│   ├── X1.mat, X2.mat, X3.mat
-│   ├── Y.mat
-│   ├── Small/
-│   └── Large/
-├── notebooks/              # Jupyter notebooks
-└── results/               # Outputs
+├── src/                    # Core implementations
+│   ├── matrix_construction.py  # Ray-path and derivative matrices
+│   ├── solvers.py              # CGLS, IRLS, gradient descent
+│   ├── data_utils.py           # Data loading and conversions
+│   └── visualization.py        # Plotting functions
+├── data/                   # .mat data files
+├── notebooks/              # xray_tomography.ipynb
+└── results/                # Generated outputs
 ```
 
 ## Installation
@@ -33,38 +29,41 @@ pip install -r requirements.txt
 python quickstart.py
 ```
 
+Or open `notebooks/xray_tomography.ipynb` for complete workflow.
+
 ## Algorithms
 
-### CGLS (Tikhonov Regularization)
-Solves: `min (1/2)||Ax - y||^2 + (λ/2)||Lx||^2`
-
+**Tikhonov Regularization (CGLS)**
 ```python
 from src.solvers import cgls
-from src.matrix_construction import build_combined_derivative_matrix
-
-L = build_combined_derivative_matrix(M, N, dimensions=2)
-result = cgls(A, y, L, lam=1e-5, tol=1e-6)
+result = cgls(A, y, L, lam=1e-5)
 ```
+Minimizes: `||Ax - y||² + λ||Lx||²`
 
-### IRLS (Total Variation)
-Solves: `min (1/2)||Ax - y||^2 + α||Lx||_1`
-
+**Total Variation (IRLS)**
 ```python
 from src.solvers import irls
-
-result = irls(A, y, L, alpha=0.5, tol=1e-4)
+result = irls(A, y, L, alpha=0.5)
 ```
+Minimizes: `||Ax - y||² + α||Lx||₁`
 
-## Notebooks
+## Results
 
-- `Q3_Q4_derivatives.ipynb` - Derivative matrices and gradients
-- `Q8_Q9_gradient_descent.ipynb` - Gradient descent analysis
-- `Q10_Q11_cgls.ipynb` - CGLS and small bag reconstruction
-- `Q12_curve_fitting.ipynb` - Regularization comparison
-- `Q15_Q16_irls.ipynb` - Total Variation and large bag
+### Derivative Matrices
+- Forward finite differences on 2D/3D grids
+- Optimized sparse matrix construction (O(n) complexity)
 
-## Notes
+### Gradient Descent vs CGLS
+- CGLS converges significantly faster than gradient descent
+- Condition number analysis for step size selection
 
-- Column-stack convention: `x = [X11, X21, X31, ..., X12, X22, ...]`
-- Use `order='F'` for grid conversions
-- Sparse matrices for efficiency
+### 3D Reconstruction
+- Small bag: 19³ = 6,859 voxels
+- Large bag: 49³ = 117,649 voxels
+- Total Variation preserves edges better than Tikhonov smoothing
+
+## Implementation Notes
+
+- Column-stack convention (Fortran order)
+- Augmented system formulation for CGLS: `B = [A; √λ·L]`
+- Sparse matrices for memory efficiency
