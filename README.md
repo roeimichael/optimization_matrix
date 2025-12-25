@@ -11,7 +11,7 @@ Computational reconstruction of 3D objects from X-ray measurements using Tikhono
 │   ├── data_utils.py           # Data loading and conversions
 │   └── visualization.py        # Plotting functions
 ├── data/                   # .mat data files
-├── notebooks/              # xray_tomography.ipynb
+├── xray_tomography.ipynb   # Main notebook
 └── results/                # Generated outputs
 ```
 
@@ -23,13 +23,9 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Quick Start
+## Usage
 
-```bash
-python quickstart.py
-```
-
-Or open `notebooks/xray_tomography.ipynb` for complete workflow.
+Open `xray_tomography.ipynb` in Jupyter for the complete workflow.
 
 ## Algorithms
 
