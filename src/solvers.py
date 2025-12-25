@@ -20,7 +20,11 @@ def cgls(A: np.ndarray,
          x0: Optional[np.ndarray] = None,
          tol: float = 1e-6,
          max_iter: Optional[int] = None) -> SolverResult:
-    """Conjugate Gradient Least Squares: min (1/2)||Ax - y||^2 + (lam/2)||Lx||^2"""
+    """Conjugate Gradient Least Squares: min (1/2)||Ax - y||^2 + (lam/2)||Lx||^2
+
+    Uses augmented system formulation: B = [A; sqrt(lam)*L], b = [y; 0]
+    Solves min ||Bx - b||^2 via CGLS algorithm.
+    """
     if sparse.issparse(A):
         A = A.tocsr()
     if L is not None and sparse.issparse(L):
@@ -30,53 +34,45 @@ def cgls(A: np.ndarray,
 
     if x0 is None:
         x = np.zeros(n)
-        s = -y.copy()
     else:
-        x = x0.copy()
-        s = A @ x - y
+        x = x0.copy().flatten()
+
+    y = y.flatten()
 
     if L is not None and lam > 0:
-        r = A.T @ s + lam * (L.T @ (L @ x))
+        B = sparse.vstack([A, np.sqrt(lam) * L])
+        b = np.concatenate([y, np.zeros(L.shape[0])])
     else:
-        r = A.T @ s
+        B = A if sparse.issparse(A) else sparse.csr_matrix(A)
+        b = y
 
-    p = -r.copy()
-    gamma = np.dot(r, r)
+    s = B @ x - b
+    g = B.T @ s
+    d = -g.copy()
 
     if max_iter is None:
         max_iter = n
 
-    residuals = [np.linalg.norm(r)]
+    residuals = [np.linalg.norm(g) / np.linalg.norm(b) if np.linalg.norm(b) > 0 else np.linalg.norm(g)]
     objective_values = [compute_objective(x, A, y, L, lam)]
 
     for k in range(max_iter):
-        if np.sqrt(gamma) < tol:
+        if residuals[-1] < tol:
             return SolverResult(x, k, residuals, objective_values, True)
 
-        q = A @ p
+        Bd = B @ d
+        gamma = np.dot(g.flat, g.flat)
+        alpha = gamma / np.dot(Bd.flat, Bd.flat)
 
-        if L is not None and lam > 0:
-            Lp = L @ p
-            q_full = np.concatenate([q, np.sqrt(lam) * Lp])
-            s_full = np.concatenate([s, np.sqrt(lam) * (L @ x)])
-            alpha = gamma / np.dot(q_full, q_full)
-        else:
-            alpha = gamma / np.dot(q, q)
+        x = x + alpha * d
+        s = s + alpha * Bd
+        g_new = B.T @ s
 
-        x = x + alpha * p
-        s = s + alpha * q
+        beta = np.dot(g_new.flat, g_new.flat) / gamma
+        d = -g_new + beta * d
+        g = g_new
 
-        if L is not None and lam > 0:
-            r = A.T @ s + lam * (L.T @ (L @ x))
-        else:
-            r = A.T @ s
-
-        gamma_new = np.dot(r, r)
-        beta = gamma_new / gamma
-        p = -r + beta * p
-        gamma = gamma_new
-
-        residuals.append(np.sqrt(gamma))
+        residuals.append(np.linalg.norm(g) / np.linalg.norm(b) if np.linalg.norm(b) > 0 else np.linalg.norm(g))
         objective_values.append(compute_objective(x, A, y, L, lam))
 
     return SolverResult(x, max_iter, residuals, objective_values, False)

@@ -6,18 +6,27 @@ from typing import Tuple, Optional
 def build_toy_ray_path_matrix(M: int = 5, N: int = 5,
                                delta_x: float = 1.0,
                                delta_y: float = 1.0) -> np.ndarray:
-    """Build ray-path matrix A for toy problem (7 sources x 5 receivers = 35 measurements)."""
-    num_sources = 7
-    num_receivers = 5
-    num_measurements = num_sources * num_receivers
-    num_unknowns = M * N
+    """Build ray-path matrix A for toy problem based on Figure 1 geometry.
 
-    A = np.zeros((num_measurements, num_unknowns))
-    delta_diag = np.sqrt(delta_x**2 + delta_y**2)
+    Returns 8x25 matrix representing 8 ray paths through a 5x5 grid.
+    Each row represents one ray, each column represents one grid cell.
+    """
+    SQRT2 = np.sqrt(2)
 
-    # TODO: Implement based on Figure 1 geometry
-    print("WARNING: Ray-path matrix needs implementation")
-    print(f"Matrix shape: {A.shape}")
+    A = np.array([
+        [0, 0, 0, SQRT2, 0, 0, 0, 0, 0, SQRT2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+        [0, SQRT2, 0, 0, 0, 0, 0, SQRT2, 0, 0, 0, 0, 0, SQRT2, 0, 0, 0, 0, 0, SQRT2, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, SQRT2, 0, 0, 0, 0, 0, SQRT2, 0, 0, 0, 0, 0, SQRT2, 0, 0, 0, 0, 0, SQRT2, 0],
+        [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+        [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+        [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, SQRT2, 0, 0, 0, SQRT2, 0, 0, 0, SQRT2, 0, 0, 0, SQRT2, 0, 0, 0, SQRT2, 0, 0, 0, 0]
+    ])
+
+    if delta_x != 1.0 or delta_y != 1.0:
+        delta_diag = np.sqrt(delta_x**2 + delta_y**2)
+        A = A * (delta_diag / SQRT2) * (A == SQRT2).astype(float) + A * delta_x * (A == 1).astype(float)
 
     return A
 
